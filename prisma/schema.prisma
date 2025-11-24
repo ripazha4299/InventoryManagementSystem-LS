@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  admin
+  viewer
+}
+
+enum ProductStatus {
+  INVENTORY
+  SPORTS_COMPLEX
+  WITH_PERSON
+  DELETED
+}
+
+enum ProductAction {
+  ADDED
+  ISSUED
+  RETURNED
+  STATUS_UPDATE
+  DELETED
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name      String?
+  role      Role     @default(admin)
+  createdAt DateTime @default(now())
+
+  products   Product[]      @relation("createdBy")
+  histories  ProductHistory[]
+  keyHist    KeyHistory[]
+  allowedAdd AllowedEmail[] @relation("addedBy")
+}
+
+model AllowedEmail {
+  email   String  @id
+  addedBy String? @db.Uuid
+  addedAt DateTime @default(now())
+  addedByUser User? @relation(fields: [addedBy], references: [id], name: "addedBy")
+}
+
+model Sport {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now())
+  products  Product[]
+}
+
+model Holder {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String?
+  roll         String?
+  contact      String?
+  inventoryKeys InventoryKey[]
+  isClubMember Boolean  @default(true)
+
+  currentProducts Product[] @relation("currentHolder")
+  lastUsedProducts Product[] @relation("lastUsedBy")
+  productHist     ProductHistory[]
+  keyFrom         KeyHistory[] @relation("fromHolder")
+  keyTo           KeyHistory[] @relation("toHolder")
+}
+
+model Product {
+  id                  String         @id @default(uuid()) @db.Uuid
+  sportId             String?        @db.Uuid
+  sport               Sport?         @relation(fields: [sportId], references: [id])
+  name                String
+  serialOrTag         String?
+  dateAdded           DateTime?
+  status              ProductStatus  @default(INVENTORY)
+  currentHolderId     String?        @db.Uuid
+  currentHolder       Holder?        @relation("currentHolder", fields: [currentHolderId], references: [id])
+  lastUsedByHolderId  String?        @db.Uuid
+  lastUsedBy          Holder?        @relation("lastUsedBy", fields: [lastUsedByHolderId], references: [id])
+  notes               String?
+  deletedAt           DateTime?
+  createdById         String?        @db.Uuid
+  createdBy           User?          @relation("createdBy", fields: [createdById], references: [id])
+  updatedAt           DateTime?      @updatedAt
+
+  history  ProductHistory[]
+
+  @@index([sportId])
+  @@index([status])
+}
+
+model ProductHistory {
+  id         String        @id @default(uuid()) @db.Uuid
+  productId  String        @db.Uuid
+  product    Product       @relation(fields: [productId], references: [id])
+  action     ProductAction
+  holderId   String?       @db.Uuid
+  holder     Holder?       @relation(fields: [holderId], references: [id])
+  byUserId   String?       @db.Uuid
+  byUser     User?         @relation(fields: [byUserId], references: [id])
+  notes      String?
+  createdAt  DateTime      @default(now())
+
+  @@index([productId])
+}
+
+model InventoryKey {
+  id              String      @id @default(uuid()) @db.Uuid
+  keyName         String
+  currentHolderId String?     @db.Uuid
+  currentHolder   Holder?     @relation(fields: [currentHolderId], references: [id])
+  lastUpdated     DateTime?   @default(now())
+  history         KeyHistory[]
+}
+
+model KeyHistory {
+  id            String   @id @default(uuid()) @db.Uuid
+  keyId         String   @db.Uuid
+  key           InventoryKey @relation(fields: [keyId], references: [id])
+  fromHolderId  String?  @db.Uuid
+  fromHolder    Holder?  @relation("fromHolder", fields: [fromHolderId], references: [id])
+  toHolderId    String?  @db.Uuid
+  toHolder      Holder?  @relation("toHolder", fields: [toHolderId], references: [id])
+  byUserId      String?  @db.Uuid
+  byUser        User?    @relation(fields: [byUserId], references: [id])
+  timestamp     DateTime @default(now())
+  notes         String?
+}

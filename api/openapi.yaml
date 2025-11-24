@@ -1,0 +1,238 @@
+openapi: 3.0.3
+info:
+  title: College Sports Inventory API
+  version: 1.0.0
+servers:
+  - url: /api/v1
+paths:
+  /auth/request-login:
+    post:
+      summary: Request a magic link / OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '202':
+          description: Accepted
+        '403':
+          description: Not allowlisted
+  /auth/validate:
+    post:
+      summary: Validate magic token and return JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Returns JWT and user
+  /products:
+    get:
+      summary: List products
+      parameters:
+        - in: query
+          name: sport_id
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: view
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer }
+        - in: query
+          name: limit
+          schema: { type: integer }
+      responses:
+        '200':
+          description: List of products
+    post:
+      summary: Create product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Created
+  /products/{id}:
+    get:
+      summary: Product detail with history
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Product detail
+    delete:
+      summary: Soft-delete product
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: No Content
+  /products/{id}/status:
+    patch:
+      summary: Change product status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string }
+                holder: { $ref: '#/components/schemas/Holder' }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Updated product
+  /sports:
+    get:
+      summary: List sports/categories
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create sport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+      responses:
+        '201':
+          description: Created
+  /holders:
+    get:
+      summary: Search holders
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create holder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Holder'
+      responses:
+        '201':
+          description: Created
+  /keys:
+    get:
+      summary: List keys
+      responses:
+        '200':
+          description: OK
+  /keys/{id}/handover:
+    post:
+      summary: Handover key
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                to_holder: { $ref: '#/components/schemas/Holder' }
+                by_user_id: { type: string }
+                notes: { type: string }
+      responses:
+        '200':
+          description: Updated key and created history entry
+  /export/inventory:
+    get:
+      summary: Export inventory snapshot
+      parameters:
+        - in: query
+          name: format
+          schema: { type: string }
+      responses:
+        '200':
+          description: Returns an Excel file
+
+components:
+  schemas:
+    ProductCreate:
+      type: object
+      properties:
+        name: { type: string }
+        sport_id: { type: string }
+        date_added: { type: string, format: date }
+        notes: { type: string }
+    Product:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        sport_id: { type: string }
+        date_added: { type: string, format: date }
+        status: { type: string }
+        current_holder: { $ref: '#/components/schemas/Holder' }
+        last_used_by: { $ref: '#/components/schemas/Holder' }
+    Holder:
+      type: object
+      properties:
+        name: { type: string }
+        roll: { type: string }
+        contact: { type: string }
+    HistoryEntry:
+      type: object
+      properties:
+        id: { type: string }
+        product_id: { type: string }
+        timestamp: { type: string, format: date-time }
+        action: { type: string }
+        by: { type: string }
+        holder: { $ref: '#/components/schemas/Holder' }
+        notes: { type: string }
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
