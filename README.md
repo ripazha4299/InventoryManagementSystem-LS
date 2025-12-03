@@ -122,14 +122,3 @@ References
 - OpenAPI contract: `api/openapi.yaml`
 - SQL schema (reference): `infra/db/schema.sql`
 
-Next steps (frontend)
-- Build a Next.js admin UI in `apps/frontend/` that provides:
-	- Landing / Dashboard with view toggle (by sport / alphabetical)
-	- Category detail lists and product detail pages
-	- Key management and admin settings pages
-	- Use `BACKEND_URL` env to point to local backend
-
----
-
-If you want, I can now continue with Step 2.2 (backend polish, finish tests) or wait to scaffold the frontend — let me know which.
-# InventoryManagementSystem-LS
